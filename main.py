@@ -11,7 +11,13 @@ def _train(args):
     data_path = Path(args.data).absolute()
     inp_path = Path(args.input).absolute() if args.input else None
     out_path = inp_path if inp_path else Path(args.output).absolute()
-    log_path = Path(args.log) if args.log else None
+    
+    if args.log == '-':
+        log_path = Path('train.csv')
+    elif args.log:
+        log_path = Path(args.log)
+    else:
+        log_path = None
 
     logger = TrainLogger(log_path, args.append_log) if log_path else None
     loader = Loader(data_path)
@@ -59,7 +65,7 @@ def _get_parser() -> ArgumentParser:
                               help='model output path (default: model.pt)')
     train_parser.add_argument(
         '--learning-rate', '--lr', type=float, help='learning rate')
-    train_parser.add_argument('--log', type=str, nargs='?', const='train.csv',
+    train_parser.add_argument('--log', type=str, nargs='?', const='-',
                               help='save results to a csv file if present (default: train.csv)')
     train_parser.add_argument(
         '--verbose', '-v', action='store_true', help='verbose training info')
