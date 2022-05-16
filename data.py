@@ -1,14 +1,17 @@
 from pathlib import Path
 from time import time
-from numpy import append
+from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
+from torchvision.io import read_image
 
 
-class Loader():
+class Loader:
 
-    def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
+    IMG_SIZE = 320
+    
+    def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 1):
 
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
@@ -38,7 +41,7 @@ class Loader():
 
         return dataset, loader
 
-    def _get_train_transform(self):
+    def _get_train_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.RandomRotation(self.max_rotation),
             transforms.RandomResizedCrop(self.max_crop),
@@ -46,14 +49,14 @@ class Loader():
             transforms.ToTensor()
         ])
 
-    def _get_test_transform(self):
+    def _get_test_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.CenterCrop(self.max_crop),
             transforms.ToTensor()
         ])
 
 
-class TrainLogger():
+class TrainLogger:
 
     HEADER = 'Epoch,Elapsed,Loss\n'
 

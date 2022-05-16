@@ -4,6 +4,7 @@ info.txt
 model.pth
 log.txt
 train/
+.vscode/
 
 # CSV files
 *.csv
