@@ -29,14 +29,22 @@ def _train(args):
     inp_path = Path(args.input).absolute() if args.input else None
     out_path = inp_path if inp_path else Path(args.output).absolute()
 
-    if args.log == '-':
-        log_path = Path('train.csv')
-    elif args.log:
-        log_path = Path(args.log)
+    if args.log:
+        if args.log == '-':
+            log_path = Path('train.csv')
+        else:
+            log_path = Path(args.log)
+        
+        logger = TrainLogger(log_path)
+        starting_epoch = 1
+        if args.append_log:
+            logger.append = True
+            if args.append_log > 1:
+                starting_epoch = args.append_log
     else:
-        log_path = None
-
-    logger = TrainLogger(log_path, args.append_log) if log_path else None
+        logger = None
+        
+    
     loader = Loader(data_path)
     img_folder, data = loader.load_train()
 
@@ -51,7 +59,7 @@ def _train(args):
         network.load(inp_path)
 
     if logger:
-        logger.start()
+        logger.start(starting_epoch)
 
     for epoch in range(args.epochs):
         print(f'\n--- Training epoch {epoch + 1}/{args.epochs} ---')
@@ -81,6 +89,8 @@ def _classify(args):
     
     if (net.classes and i < len(net.classes)):
         print(f'{net.classes[i]} ({100 * result[i] / sum(result):.2f}%)')
+    else:
+        print(f'{i} ({100 * result[i] / sum(result):.2f}%)')
 
 
 def _get_parser() -> ArgumentParser:
@@ -103,7 +113,7 @@ def _get_parser() -> ArgumentParser:
     train_parser.add_argument(
         '--verbose', '-v', action='store_true', help='verbose training info')
     train_parser.add_argument(
-        '--append-log', action='store_true', help='append to the log file')
+        '--append-log', type=int, nargs='?', const=0, help='append to the log file starting at the specified epoch (default: 1)')
     train_parser.set_defaults(func=_train)
 
     validation_parser = subparsers.add_parser(

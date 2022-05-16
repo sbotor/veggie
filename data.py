@@ -11,7 +11,7 @@ class Loader:
 
     IMG_SIZE = 320
     
-    def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 1):
+    def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
 
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
@@ -68,7 +68,7 @@ class TrainLogger:
         self._prev_time = None
         self._finished_epochs = 0
 
-    def start(self):
+    def start(self, epoch: int = 1):
         if self.append:
             self._prev_time = time()
             return
@@ -77,7 +77,7 @@ class TrainLogger:
             f.write(self.HEADER)
 
         self._prev_time = time()
-        self._finished_epochs = 0
+        self._finished_epochs = epoch - 1
 
     def log_epoch(self, loss: float):
         curr_time = time()
