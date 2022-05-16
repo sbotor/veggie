@@ -1,12 +1,28 @@
 from pathlib import Path
 from time import time
-from numpy import append
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
+from torchvision.io import read_image
+from network import DEVICE
 
 
-class Loader():
+def read_img(img_path: str | Path, max_crop: int = 320):
+
+    img_path = img_path if isinstance(
+        img_path, Path) else Path(img_path)
+
+    transform = transforms.Compose([
+        transforms.CenterCrop(max_crop)
+    ])
+
+    raw_img = read_image(str(img_path.absolute())).to(DEVICE)
+    return transform(raw_img).float()
+
+
+class Loader:
+
+    IMG_SIZE = 320
 
     def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
 
@@ -38,7 +54,7 @@ class Loader():
 
         return dataset, loader
 
-    def _get_train_transform(self):
+    def _get_train_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.RandomRotation(self.max_rotation),
             transforms.RandomResizedCrop(self.max_crop),
@@ -46,14 +62,14 @@ class Loader():
             transforms.ToTensor()
         ])
 
-    def _get_test_transform(self):
+    def _get_test_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.CenterCrop(self.max_crop),
             transforms.ToTensor()
         ])
 
 
-class TrainLogger():
+class TrainLogger:
 
     HEADER = 'Epoch,Elapsed,Loss\n'
 
@@ -65,7 +81,7 @@ class TrainLogger():
         self._prev_time = None
         self._finished_epochs = 0
 
-    def start(self):
+    def start(self, epoch: int = 1):
         if self.append:
             self._prev_time = time()
             return
@@ -74,7 +90,7 @@ class TrainLogger():
             f.write(self.HEADER)
 
         self._prev_time = time()
-        self._finished_epochs = 0
+        self._finished_epochs = epoch - 1
 
     def log_epoch(self, loss: float):
         curr_time = time()

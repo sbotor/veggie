@@ -1,5 +1,6 @@
 from math import floor
 from pathlib import Path
+from typing import List
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -24,7 +25,7 @@ class Network(nn.Module):
     FC1_OUT = 120
     FC2_OUT = 84
 
-    def __init__(self, img_dim: int, out_num: int):
+    def __init__(self, img_dim: int = 320, out_num: int = 33, classes: List[str] = None):
         super().__init__()
 
         self.pool = nn.MaxPool2d(self.POOL_KERNEL_SIZE, self.POOL_STRIDE)
@@ -41,6 +42,8 @@ class Network(nn.Module):
         self.fc2 = nn.Linear(self.FC1_OUT, self.FC2_OUT)
         self.fc3 = nn.Linear(self.FC2_OUT, out_num)
 
+        self.classes = tuple(classes) if classes else None
+
         self.to(DEVICE)
 
     def _pooled_dim(self, dimensions: int):
@@ -56,7 +59,11 @@ class Network(nn.Module):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
 
-        x = torch.flatten(x, 1)  # flatten all dimensions except batch
+        if self.training:
+            x = torch.flatten(x, 1)  # flatten all dimensions except batch
+        else:
+            x = torch.flatten(x)
+        
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -64,16 +71,24 @@ class Network(nn.Module):
         return x
 
     def load(self, path: Path | str):
-        self.load_state_dict(torch.load(path))
+        load_dict = torch.load(path, map_location=DEVICE)
+        
+        self.load_state_dict(load_dict['model'])
+        self.classes = load_dict['classes']
 
     def save(self, path: Path | str):
-        torch.save(self.state_dict(), path)
+        
+        save_dict = {
+            'model': self.state_dict(),
+            'classes': self.classes
+            }
+        torch.save(save_dict, path)
 
 
-class Trainer():
+class Trainer:
 
     verbose = False
-    report_freq = 10
+    report_freq = 4
 
     def __init__(self, learning_rate: float = 0.001, optimizer=None, criterion=None):
 
@@ -85,6 +100,7 @@ class Trainer():
     def train(self, network: Network, loader: DataLoader) -> float:
 
         data_len = len(loader)
+        report = data_len // self.report_freq
 
         if not self.optimizer:
             self.optimizer = optim.Adam(
@@ -109,14 +125,14 @@ class Trainer():
             loss_sum += loss
             avg_loss = loss_sum / (i + 1)
 
-            if self.verbose and i % self.report_freq == 0:
+            if self.verbose and i % report == 0:
                 print(
-                    f'Progress: {i + 1}/{data_len} (avg. loss: {avg_loss:.3f})')
+                    f'Progress: {100 * (i + 1) / data_len:.2f}% (avg. loss: {avg_loss:.3f})')
 
         return avg_loss
 
 
-class Validator():
+class Validator:
 
     def __init__(self):
 
