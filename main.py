@@ -1,135 +1,92 @@
+from argparse import ArgumentParser
+from network import DEVICE, Network, Trainer
+from data import TrainLogger, Loader
 from pathlib import Path
-from torchvision.datasets import ImageFolder
-from torchvision import transforms
-from torch.utils.data import DataLoader
-import torch.optim as optim
-import torch.nn as nn
-import torch
-import time
-
-from network import AbstractNetwork, Network, SimpleNetwork
-import debug
-
-ROTATION = 30
-RESIZE = 380
-CROP = 320
-CROP2 = CROP * CROP
-BATCH_SIZE = 32
-
-DATA_HOME = 'data'
-
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-EPOCHS = 10
-LEARNING_RATE = 0.001
-
-PRINT = True
-REPORT_FREQ = 20
-SAVE = True
-SAVE_PATH = 'model.pth'
 
 
-def load_train_data(home_path: str | Path) -> tuple[ImageFolder, DataLoader]:
+def _train(args):
 
-    data_path = Path(home_path).joinpath('train')
-    transform = transforms.Compose([
-        transforms.RandomRotation(ROTATION),
-        transforms.RandomResizedCrop(CROP),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor()
-    ])
+    print(f'*** Training ({DEVICE})... ***')
 
-    dataset = ImageFolder(data_path, transform=transform)
-    loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    return dataset, loader
-
-
-def load_test_data(home_path: str | Path) -> tuple[ImageFolder, DataLoader]:
-
-    data_path = Path(home_path).joinpath('test')
-    transform = transforms.Compose([
-        transforms.Resize(RESIZE),
-        transforms.CenterCrop(CROP),
-        transforms.ToTensor()
-    ])
-
-    dataset = ImageFolder(data_path, transform=transform)
-    loader = DataLoader(dataset, )
-
-    return dataset, loader
-
-
-def train(net: AbstractNetwork, train_loader: DataLoader, criterion = None, optimizer = None):
-    optimizer = optimizer or optim.Adam(net.parameters(), lr=LEARNING_RATE)
-    criterion = criterion or nn.CrossEntropyLoss()
+    data_path = Path(args.data).absolute()
+    inp_path = Path(args.input).absolute() if args.input else None
+    out_path = inp_path if inp_path else Path(args.output).absolute()
     
-    loss = 0.0
-    length = len(train_loader)
+    if args.log == '-':
+        log_path = Path('train.csv')
+    elif args.log:
+        log_path = Path(args.log)
+    else:
+        log_path = None
 
-    for epoch in range(EPOCHS):
-        for i, data in enumerate(train_loader):
-            x, y = data[0].to(DEVICE), data[1].to(DEVICE)
-            net.zero_grad()
+    logger = TrainLogger(log_path, args.append_log) if log_path else None
+    loader = Loader(data_path)
+    _, data = loader.load_train()
 
-            trans_x = net.prepare(x)
-            output = net(trans_x)
+    data_len = len(data)
+    trainer = Trainer()
+    trainer.learning_rate = args.learning_rate or trainer.learning_rate
+    trainer.verbose = args.verbose
 
-            loss = criterion(output, y)
-            loss.backward()
-            optimizer.step()
+    network = Network(loader.max_crop, data_len)
 
-            if PRINT and i % REPORT_FREQ == 0:
-                print(
-                    f'Epoch: {epoch + 1}/{EPOCHS}, progress {i + 1}/{length}, loss: {loss.item():.3f}')
-                # print(output)
+    if inp_path:
+        network.load(inp_path)
 
-        if PRINT:
-            print(
-                f'---Epoch: {epoch + 1} finished, loss: {loss.item():.3f}---')
+    if logger:
+        logger.start()
+
+    for epoch in range(args.epochs):
+        print(f'\n--- Training epoch {epoch + 1}/{args.epochs} ---')
+
+        loss = trainer.train(network, data)
+
+        print(
+            f'--- Epoch {epoch + 1}/{args.epochs} finished (avg. loss: {loss:.3f}) ---')
+
+        if logger:
+            logger.log_epoch(loss)
+
+    network.save(out_path)
 
 
-def validate(net: AbstractNetwork, test_loader: DataLoader) -> tuple[int, int]:
-    correct = 0
-    total = 0
+def _get_parser() -> ArgumentParser:
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers()
 
-    with torch.no_grad():
-        for data in test_loader:
-            image, label = data[0].to(DEVICE), data[1].to(DEVICE)
-            output = net(net.prepare(image))
+    train_parser = subparsers.add_parser(
+        'train', help='TODO: train help', aliases=['t'])
+    train_parser.add_argument('data', help='root data folder path')
+    train_parser.add_argument(
+        '--input', '-i', type=str, help='input model (new model will be created if not present)')
+    train_parser.add_argument(
+        '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
+    train_parser.add_argument('--output', '-o', type=str, default='model.pt',
+                              help='model output path (default: model.pt)')
+    train_parser.add_argument(
+        '--learning-rate', '--lr', type=float, help='learning rate')
+    train_parser.add_argument('--log', type=str, nargs='?', const='-',
+                              help='save results to a csv file if present (default: train.csv)')
+    train_parser.add_argument(
+        '--verbose', '-v', action='store_true', help='verbose training info')
+    train_parser.add_argument(
+        '--append-log', action='store_true', help='append to the log file')
+    train_parser.set_defaults(func=_train)
 
-            for idx, i in enumerate(output):
-                if torch.argmax(i) == label[idx]:
-                    correct += 1
-                total += 1
+    validation_parser = subparsers.add_parser(
+        'validate', help='TODO: validate help', aliases=['v'])
 
-        if PRINT:
-            print(
-                f'Accuracy: {correct} / {total} ({(correct * 100.0 / total):.3f}%)')
+    classification_parser = subparsers.add_parser(
+        'class', help='TODO: classification help', aliases=['c'])
 
-    return correct, total
+    return parser
 
 
 def main():
-    train_dataset, train_loader = load_train_data(DATA_HOME)
-    classes_n = len(train_dataset.classes)
+    parser = _get_parser()
+    args = parser.parse_args()
 
-    # net = SimpleNetwork(CROP, classes_n)
-    net = Network(CROP, classes_n)
-
-    net.to(DEVICE)
-    print(f'Training on device: "{DEVICE.type}".\n')
-    t_start = time.process_time()
-    train(net, train_loader)
-    t_stop = time.process_time()
-    print("Training finished.\n")
-
-    _, test_loader = load_test_data(DATA_HOME)
-    correct, total = validate(net, test_loader)
-
-    if SAVE:
-        torch.save(net.state_dict(), SAVE_PATH)
-
-    debug.dump_info(classes_n, t_stop - t_start, EPOCHS, correct, total)
+    args.func(args)
 
 
 if __name__ == '__main__':
