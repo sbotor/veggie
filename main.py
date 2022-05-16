@@ -1,24 +1,9 @@
 from argparse import ArgumentParser
 
-from torchvision import transforms
 from network import DEVICE, Network, Trainer
-from data import TrainLogger, Loader
+from data import TrainLogger, Loader, read_img
 from pathlib import Path
-from torchvision.io import read_image
 import torch
-
-
-def _read_img(img_path: str | Path, max_crop: int = 320):
-
-    img_path = img_path if isinstance(
-        img_path, Path) else Path(img_path)
-
-    transform = transforms.Compose([
-        transforms.CenterCrop(max_crop)
-    ])
-
-    raw_img = read_image(str(img_path.absolute())).to(DEVICE)
-    return transform(raw_img).float()
 
 
 def _train(args):
@@ -34,7 +19,7 @@ def _train(args):
             log_path = Path('train.csv')
         else:
             log_path = Path(args.log)
-        
+
         logger = TrainLogger(log_path)
         starting_epoch = 1
         if args.append_log:
@@ -43,8 +28,7 @@ def _train(args):
                 starting_epoch = args.append_log
     else:
         logger = None
-        
-    
+
     loader = Loader(data_path)
     img_folder, data = loader.load_train()
 
@@ -81,50 +65,69 @@ def _classify(args):
 
     net = Network()
     net.load(model_path)
-    img = _read_img(image_path)
+    img = read_img(image_path)
 
     net.eval()
     result = net(img)
     i = torch.argmax(result)
-    
+
     if (net.classes and i < len(net.classes)):
         print(f'{net.classes[i]} ({100 * result[i] / sum(result):.2f}%)')
     else:
         print(f'{i} ({100 * result[i] / sum(result):.2f}%)')
 
 
-def _get_parser() -> ArgumentParser:
-    parser = ArgumentParser()
-    subparsers = parser.add_subparsers()
-
+def _add_train_parser(subparsers):
     train_parser = subparsers.add_parser(
         'train', help='TODO: train help', aliases=['t'])
+
     train_parser.add_argument('data', help='root data folder path')
+
+    train_parser.add_argument(
+        '--verbose', '-v', action='store_true', help='verbose training info')
+
     train_parser.add_argument(
         '--input', '-i', help='input model (new model will be created if not present)')
-    train_parser.add_argument(
-        '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
     train_parser.add_argument('--output', '-o', default='model.pt',
                               help='model output path (default: model.pt)')
+    
+    train_parser.add_argument(
+        '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
     train_parser.add_argument(
         '--learning-rate', '--lr', type=float, help='learning rate')
+
     train_parser.add_argument('--log', nargs='?', const='-',
                               help='save results to a csv file if present (default: train.csv)')
     train_parser.add_argument(
-        '--verbose', '-v', action='store_true', help='verbose training info')
-    train_parser.add_argument(
         '--append-log', type=int, nargs='?', const=0, help='append to the log file starting at the specified epoch (default: 1)')
+
     train_parser.set_defaults(func=_train)
+
+def _add_validation_parser(subparsers):
+    # TODO
 
     validation_parser = subparsers.add_parser(
         'validate', help='TODO: validate help', aliases=['v'])
 
+
+def _add_classification_parser(subparsers):
     class_parser = subparsers.add_parser(
         'classify', help='TODO: classification help', aliases=['class', 'c'])
+
     class_parser.add_argument('image', help='image path')
     class_parser.add_argument(
         '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
+
     class_parser.set_defaults(func=_classify)
+
+
+def _get_parser() -> ArgumentParser:
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    _add_train_parser(subparsers)
+    _add_validation_parser(subparsers)
+    _add_classification_parser(subparsers)
 
     return parser
 

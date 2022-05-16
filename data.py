@@ -1,16 +1,29 @@
 from pathlib import Path
 from time import time
-from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from torchvision.io import read_image
+from network import DEVICE
+
+
+def read_img(img_path: str | Path, max_crop: int = 320):
+
+    img_path = img_path if isinstance(
+        img_path, Path) else Path(img_path)
+
+    transform = transforms.Compose([
+        transforms.CenterCrop(max_crop)
+    ])
+
+    raw_img = read_image(str(img_path.absolute())).to(DEVICE)
+    return transform(raw_img).float()
 
 
 class Loader:
 
     IMG_SIZE = 320
-    
+
     def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
 
         self.data_home = data_home if isinstance(
