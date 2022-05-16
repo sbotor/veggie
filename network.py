@@ -1,80 +1,138 @@
-from abc import ABC, abstractmethod
 from math import floor
+from pathlib import Path
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+import torch.optim as optim
+from torch.utils.data import DataLoader
 
-class AbstractNetwork(nn.Module, ABC):
-    
-    @abstractmethod
-    def prepare(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-class SimpleNetwork(AbstractNetwork):
-    
-    _INTER_NUM = 86
+
+class Network(nn.Module):
+
+    POOL_KERNEL_SIZE = 2
+    POOL_STRIDE = 2
+
+    CONV1_IN = 3
+    CONV1_OUT = 6
+    CONV1_KERNEL_SIZE = 5
+
+    CONV2_OUT = 16
+    CONV2_KERNEL_SIZE = 5
+
+    FC1_OUT = 120
+    FC2_OUT = 84
 
     def __init__(self, img_dim: int, out_num: int):
         super().__init__()
-        self.fc1 = nn.Linear(img_dim * img_dim * 3, self._INTER_NUM)
-        self.fc2 = nn.Linear(self._INTER_NUM, self._INTER_NUM)
-        self.fc3 = nn.Linear(self._INTER_NUM, self._INTER_NUM)
-        self.fc4 = nn.Linear(self._INTER_NUM, out_num)
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x= self.fc4(x)
-        return F.log_softmax(x, dim=1)
+        self.pool = nn.MaxPool2d(self.POOL_KERNEL_SIZE, self.POOL_STRIDE)
 
-    def prepare(self, x: torch.Tensor) -> torch.Tensor:
-        return x.view(-1, self.fc1.in_features)
+        self.conv1 = nn.Conv2d(
+            self.CONV1_IN, self.CONV1_OUT, self.CONV1_KERNEL_SIZE)
+        self.conv2 = nn.Conv2d(
+            self.CONV1_OUT, self.CONV2_OUT, self.CONV2_KERNEL_SIZE)
 
-class Network(AbstractNetwork):
-    
-    def __init__(self, img_dim: int, out_num: int):
-        super().__init__()
-        self.pool = nn.MaxPool2d(2, 2)
+        dim_trans = self._pooled_dim(self._pooled_dim(img_dim))
 
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(self.CONV2_OUT * dim_trans *
+                             dim_trans, self.FC1_OUT)
+        self.fc2 = nn.Linear(self.FC1_OUT, self.FC2_OUT)
+        self.fc3 = nn.Linear(self.FC2_OUT, out_num)
 
-        dim_trans = self._after_pool(img_dim, 2)
-        #print(dim_trans2)
+        self.to(DEVICE)
 
-        self.fc1 = nn.Linear(16 * dim_trans * dim_trans, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, out_num)
-
-    def _after_pool(self, dim: int, count: int = None):
+    def _pooled_dim(self, dimensions: int):
         padding = self.pool.padding
         dilation = self.pool.dilation
         k_size = self.pool.kernel_size
         stride = self.pool.stride
-        
-        numerator = dim + 2 * padding - dilation * (k_size - 1) - 1
-        y = floor(numerator / stride + 1) - 2
 
-        count = count or 1
-        for _ in range(count - 1):
-            numerator = y + 2 * padding - dilation * (k_size - 1) - 1
-            y = floor(numerator / stride + 1) - 2
-
-        return y
+        numerator = dimensions + 2 * padding - dilation * (k_size - 1) - 1
+        return floor(numerator / stride + 1) - 2
 
     def forward(self, x):
-        #print(x.shape)
         x = self.pool(F.relu(self.conv1(x)))
-        #print(x.shape)
         x = self.pool(F.relu(self.conv2(x)))
-        #print(x.shape)
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        #print(x.shape)
+
+        x = torch.flatten(x, 1)  # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+
         return x
 
-    def prepare(self, x: torch.Tensor) -> torch.Tensor:
-        return x
+    def load(self, path: Path | str):
+        self.load_state_dict(torch.load(path))
+
+    def save(self, path: Path | str):
+        torch.save(self.state_dict(), path)
+
+
+class Trainer():
+
+    verbose = False
+    report_freq = 10
+
+    def __init__(self, learning_rate: float = 0.001, optimizer=None, criterion=None):
+
+        self.learning_rate = learning_rate
+
+        self.optimizer = optimizer
+        self.criterion = criterion
+
+    def train(self, network: Network, loader: DataLoader) -> float:
+
+        data_len = len(loader)
+
+        if not self.optimizer:
+            self.optimizer = optim.Adam(
+                network.parameters(), lr=self.learning_rate)
+
+        if not self.criterion:
+            self.criterion = nn.CrossEntropyLoss()
+
+        loss_sum = 0
+        avg_loss = 0
+
+        for i, data in enumerate(loader):
+            x, expected = data[0].to(DEVICE), data[1].to(DEVICE)
+
+            network.zero_grad()
+            output = network(x)
+
+            loss = self.criterion(output, expected)
+            loss.backward()
+            self.optimizer.step()
+
+            loss_sum += loss
+            avg_loss = loss_sum / (i + 1)
+
+            if self.verbose and i % self.report_freq == 0:
+                print(
+                    f'Progress: {i + 1}/{data_len} (avg. loss: {avg_loss:.3f})')
+
+        return avg_loss
+
+
+class Validator():
+
+    def __init__(self):
+
+        self.correct = None
+        self.total = None
+
+    def validate(self, network: Network, loader: DataLoader):
+        self.correct = 0
+        self.total = 0
+
+        with torch.no_grad():
+            for data in loader:
+                x, label = data[0].to(DEVICE), data[1].to(DEVICE)
+                output = network(x)
+
+                for idx, i in enumerate(output):
+                    if torch.argmax(i) == label[idx]:
+                        self.correct += 1
+                    self.total += 1
