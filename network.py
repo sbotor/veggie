@@ -2,7 +2,6 @@ from math import floor
 from pathlib import Path
 from typing import List
 import torch.nn as nn
-import torch.nn.functional as F
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -25,11 +24,16 @@ class Network(nn.Module):
     FC1_OUT = 120
     FC2_OUT = 84
 
+    _DICT_CLASSES = 'classes'
+    _DICT_MODEL = 'model'
+    _DICT_DIMENSIONS = 'dimensions'
+
     def __init__(self, img_dim: int = 320, out_num: int = 33, classes: List[str] = None):
         super().__init__()
 
         self.pool = nn.MaxPool2d(self.POOL_KERNEL_SIZE, self.POOL_STRIDE)
-
+        self.activ = nn.Sigmoid()
+        
         self.conv1 = nn.Conv2d(
             self.CONV1_IN, self.CONV1_OUT, self.CONV1_KERNEL_SIZE)
         self.conv2 = nn.Conv2d(
@@ -42,7 +46,8 @@ class Network(nn.Module):
         self.fc2 = nn.Linear(self.FC1_OUT, self.FC2_OUT)
         self.fc3 = nn.Linear(self.FC2_OUT, out_num)
 
-        self.classes = tuple(classes) if classes else None
+        self.classes = tuple(classes) if classes else tuple()
+        self.img_dim = img_dim
 
         self.to(DEVICE)
 
@@ -56,32 +61,41 @@ class Network(nn.Module):
         return floor(numerator / stride + 1) - 2
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(self.activ(self.conv1(x)))
+        x = self.pool(self.activ(self.conv2(x)))
 
         if self.training:
             x = torch.flatten(x, 1)  # flatten all dimensions except batch
         else:
             x = torch.flatten(x)
-        
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+
+        x = self.activ(self.fc1(x))
+        x = self.activ(self.fc2(x))
+        x = self.activ(self.fc3(x))
 
         return x
 
-    def load(self, path: Path | str):
+    @classmethod
+    def load(cls, path: Path | str) -> 'Network':
+
         load_dict = torch.load(path, map_location=DEVICE)
-        
-        self.load_state_dict(load_dict['model'])
-        self.classes = load_dict['classes']
+
+        img_dim = load_dict[cls._DICT_DIMENSIONS]
+        classes = load_dict[cls._DICT_CLASSES]
+        classes_n = len(classes)
+
+        net = Network(img_dim, classes_n, classes)
+        net.load_state_dict(load_dict[cls._DICT_MODEL])
+
+        return net
 
     def save(self, path: Path | str):
-        
+
         save_dict = {
-            'model': self.state_dict(),
-            'classes': self.classes
-            }
+            self._DICT_MODEL: self.state_dict(),
+            self._DICT_CLASSES: self.classes,
+            self._DICT_DIMENSIONS: self.img_dim
+        }
         torch.save(save_dict, path)
 
 

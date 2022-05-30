@@ -31,16 +31,17 @@ def _train(args):
 
     loader = Loader(data_path)
     img_folder, data = loader.load_train()
+    classes = img_folder.classes
 
-    classes_n = len(img_folder.classes)
     trainer = Trainer()
     trainer.learning_rate = args.learning_rate or trainer.learning_rate
     trainer.verbose = args.verbose
 
-    network = Network(loader.max_crop, classes_n, img_folder.classes)
-
+    network = None
     if inp_path:
-        network.load(inp_path)
+        network = Network.load(inp_path)
+    else:
+        network = Network(loader.IMG_SIZE, len(classes), classes)
 
     if logger:
         logger.start(starting_epoch)
@@ -63,8 +64,7 @@ def _classify(args):
     model_path = Path(args.model).absolute()
     image_path = Path(args.image).absolute()
 
-    net = Network()
-    net.load(model_path)
+    net = Network.load(model_path)
     img = read_img(image_path)
 
     net.eval()
@@ -72,9 +72,9 @@ def _classify(args):
     i = torch.argmax(result)
 
     if (net.classes and i < len(net.classes)):
-        print(f'{net.classes[i]} ({100 * result[i] / sum(result):.2f}%)')
+        print(f'{net.classes[i]} ({result[i]:.3f})')
     else:
-        print(f'{i} ({100 * result[i] / sum(result):.2f}%)')
+        print(f'{i} ({result[i]:.3f})')
 
 
 def _add_train_parser(subparsers):
@@ -90,7 +90,7 @@ def _add_train_parser(subparsers):
         '--input', '-i', help='input model (new model will be created if not present)')
     train_parser.add_argument('--output', '-o', default='model.pt',
                               help='model output path (default: model.pt)')
-    
+
     train_parser.add_argument(
         '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
     train_parser.add_argument(
@@ -102,6 +102,7 @@ def _add_train_parser(subparsers):
         '--append-log', type=int, nargs='?', const=0, help='append to the log file starting at the specified epoch (default: 1)')
 
     train_parser.set_defaults(func=_train)
+
 
 def _add_validation_parser(subparsers):
     # TODO
@@ -136,7 +137,10 @@ def main():
     parser = _get_parser()
     args = parser.parse_args()
 
-    args.func(args)
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':
