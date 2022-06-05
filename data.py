@@ -24,7 +24,7 @@ class Loader:
 
     IMG_SIZE = 320
 
-    def __init__(self, data_home: str = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
+    def __init__(self, data_home: str = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 32):
 
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
@@ -41,7 +41,7 @@ class Loader:
         transform = self._get_train_transform()
 
         dataset = ImageFolder(self.train_path, transform=transform)
-        loader = DataLoader(dataset, batch_size=self.batch_size)
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         return dataset, loader
 

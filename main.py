@@ -65,8 +65,6 @@ def _test(args):
     data_path = Path(args.data).absolute()
     model_path = Path(args.model).absolute()
 
-    print(model_path)
-
     net = Network.load(model_path)
     # inp_path = Path(args.input).absolute() if args.input else None
     # out_path = inp_path if inp_path else Path(args.output).absolute()
@@ -84,7 +82,7 @@ def _test(args):
         logger = None
 
     loader = Loader(data_path)
-    img_folder, data = loader.load_test()
+    _, data = loader.load_test()
 
     tester = Tester()
 
@@ -95,6 +93,8 @@ def _test(args):
 
     if logger:
         logger.log_test_result(correct, total)
+
+    print(f'Accuracy: {correct}/{total} ({100 * correct / total:.1f}%)')
 
 
 def _classify(args):
@@ -153,6 +153,7 @@ def _add_test_parser(subparsers):
 
     test_parser.add_argument('--log', nargs='?', const='-',
                                    help='save results to a csv file if present (default: train.csv)')
+    # TODO
     test_parser.add_argument(
         '--append-log', type=int, nargs='?', const=0,
         help='append to the log file starting at the specified epoch (default: 1)')

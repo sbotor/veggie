@@ -1,5 +1,4 @@
 from math import floor
-from pathlib import Path
 from typing import List
 import torch.nn as nn
 import torch
@@ -31,7 +30,7 @@ class Network(nn.Module):
         super().__init__()
 
         self.pool = nn.MaxPool2d(self.POOL_KERNEL_SIZE, self.POOL_STRIDE)
-        self.activ = nn.Sigmoid()
+        self.activ = nn.ReLU()
 
         self.conv1 = nn.Conv2d(
             self.CONV1_IN, self.CONV1_OUT, self.CONV1_KERNEL_SIZE)
@@ -70,7 +69,7 @@ class Network(nn.Module):
 
         x = self.activ(self.fc1(x))
         x = self.activ(self.fc2(x))
-        x = self.activ(self.fc3(x))
+        x = self.fc3(x)
 
         return x
 
@@ -102,7 +101,7 @@ class Trainer:
     verbose = False
     report_freq = 4
 
-    def __init__(self, learning_rate: float = 0.001, optimizer=None, criterion=None):
+    def __init__(self, learning_rate: float = 0.0001, optimizer=None, criterion=None):
 
         self.learning_rate = learning_rate
 
@@ -124,6 +123,7 @@ class Trainer:
         loss_sum = 0
         avg_loss = 0
 
+        network.train()
         for i, data in enumerate(loader):
             x, expected = data[0].to(DEVICE), data[1].to(DEVICE)
 
@@ -139,7 +139,7 @@ class Trainer:
 
             if self.verbose and i % report == 0:
                 print(
-                    f'Progress: {100 * (i + 1) / data_len:.2f}% (avg. loss: {avg_loss:.3f})')
+                    f'Progress: {100 * (i + 1) / data_len:.2f}% (avg. loss: {loss:.3f})')
 
         return avg_loss
 
@@ -157,8 +157,8 @@ class Tester:
 
         with torch.no_grad():
             for data in loader:
-                x, label = data[0].to(DEVICE), data[1].to(DEVICE)
-                output = network(x)
+                image, label = data[0].to(DEVICE), data[1].to(DEVICE)
+                output = network(image)
 
                 for idx, i in enumerate(output):
                     if torch.argmax(i) == label[idx]:
