@@ -118,7 +118,7 @@ def _classify(args):
 
 def _add_train_parser(subparsers):
     train_parser = subparsers.add_parser(
-        'train', help='TODO: train help', aliases=['t'])
+        'train', help='TODO: train help')
 
     train_parser.add_argument('data', help='root data folder path')
 
@@ -147,7 +147,7 @@ def _add_train_parser(subparsers):
 def _add_test_parser(subparsers):
 
     test_parser = subparsers.add_parser(
-        'test', help='TODO: test help', aliases=['t'])
+        'test', help='TODO: test help')
 
     test_parser.add_argument('data', help='root data folder path')
 
@@ -165,7 +165,7 @@ def _add_test_parser(subparsers):
 
 def _add_classification_parser(subparsers):
     class_parser = subparsers.add_parser(
-        'classify', help='TODO: classification help', aliases=['class', 'c'])
+        'classify', help='TODO: classification help', aliases=['class'])
 
     class_parser.add_argument('image', help='image path')
     class_parser.add_argument(

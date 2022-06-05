@@ -81,14 +81,12 @@ class TrainLogger:
         self._prev_time = None
         self._finished_epochs = 0
 
-    def start(self, epoch: int = 1):
-        if self.append:
-            self._prev_time = time()
-            return
+    def start(self, epoch: int = None):
+        if not self.append:
+            with open(self.path, 'w') as f:
+                f.write(self.HEADER)
 
-        with open(self.path, 'w') as f:
-            f.write(self.HEADER)
-
+        epoch = epoch if epoch else 1
         self._prev_time = time()
         self._finished_epochs = epoch - 1
 
@@ -116,12 +114,9 @@ class TestLogger:
         self._prev_time = None
 
     def start(self):
-        if self.append:
-            self._prev_time = time()
-            return
-
-        with open(self.path, 'w') as f:
-            f.write(self.HEADER)
+        if not self.append:
+            with open(self.path, 'w') as f:
+                f.write(self.HEADER)
 
         self._prev_time = time()
 
