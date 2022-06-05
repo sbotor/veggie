@@ -54,15 +54,6 @@ class Loader:
 
         return dataset, loader
 
-    def load_test(self):
-
-        transform = self._get_test_transform()
-
-        dataset = ImageFolder(self.test_path, transform=transform)
-        loader = DataLoader(dataset)
-
-        return dataset, loader
-
     def _get_train_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.RandomRotation(self.max_rotation),
