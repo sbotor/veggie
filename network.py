@@ -155,14 +155,14 @@ class Tester:
         self.correct = 0
         self.total = 0
 
+        network.eval()
         with torch.no_grad():
             for data in loader:
                 image, label = data[0].to(DEVICE), data[1].to(DEVICE)
-                output = network(image)
+                output = torch.flatten(network(image))
 
-                for idx, i in enumerate(output):
-                    if torch.argmax(i) == label[idx]:
-                        self.correct += 1
-                    self.total += 1
+                if torch.argmax(output).item() == label.item():
+                    self.correct += 1
+                self.total += 1
 
         return self.correct, self.total
