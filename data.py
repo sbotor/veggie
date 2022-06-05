@@ -30,6 +30,7 @@ class Loader:
             data_home, Path) else Path(data_home)
         self.train_path = self.data_home.joinpath('train')
         self.test_path = self.data_home.joinpath('test')
+        self.test_path = self.data_home.joinpath('test')
 
         self.max_rotation = max_rotation
         self.max_crop = max_crop
@@ -42,6 +43,15 @@ class Loader:
 
         dataset = ImageFolder(self.train_path, transform=transform)
         loader = DataLoader(dataset, batch_size=self.batch_size)
+
+        return dataset, loader
+
+    def load_test(self) -> tuple[ImageFolder, DataLoader]:
+
+        transform = self._get_test_transform()
+
+        dataset = ImageFolder(self.test_path, transform=transform)
+        loader = DataLoader(dataset)
 
         return dataset, loader
 
@@ -71,7 +81,7 @@ class Loader:
 
 class TrainLogger:
 
-    HEADER = 'Epoch,Elapsed,Loss\n'
+    HEADER = 'Epoch;Elapsed;Loss\n'
 
     def __init__(self, path: str | Path, append: bool = False):
 
@@ -96,9 +106,41 @@ class TrainLogger:
         curr_time = time()
         elapsed = curr_time - self._prev_time
 
-        line = f'{self._finished_epochs + 1},{elapsed:.3f},{loss}\n'
+        line = f'{self._finished_epochs + 1};{elapsed:.3f};{loss}\n'
         with open(self.path, 'a') as f:
             f.write(line)
 
         self._finished_epochs += 1
+        self._prev_time = curr_time
+
+
+class TestLogger:
+
+    HEADER = 'Elapsed;Correct;Total\n'
+
+    def __init__(self, path: str | Path, append: bool = False):
+
+        self.path = path if isinstance(path, Path) else Path(path)
+        self.append = append
+
+        self._prev_time = None
+
+    def start(self):
+        if self.append:
+            self._prev_time = time()
+            return
+
+        with open(self.path, 'w') as f:
+            f.write(self.HEADER)
+
+        self._prev_time = time()
+
+    def log_test_result(self, correct: int, total: int):
+        curr_time = time()
+        elapsed = curr_time - self._prev_time
+
+        line = f'{elapsed:.3f};{correct};{total}\n'
+        with open(self.path, 'a') as f:
+            f.write(line)
+
         self._prev_time = curr_time

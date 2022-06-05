@@ -10,7 +10,6 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Network(nn.Module):
-
     POOL_KERNEL_SIZE = 2
     POOL_STRIDE = 2
 
@@ -33,7 +32,7 @@ class Network(nn.Module):
 
         self.pool = nn.MaxPool2d(self.POOL_KERNEL_SIZE, self.POOL_STRIDE)
         self.activ = nn.Sigmoid()
-        
+
         self.conv1 = nn.Conv2d(
             self.CONV1_IN, self.CONV1_OUT, self.CONV1_KERNEL_SIZE)
         self.conv2 = nn.Conv2d(
@@ -100,7 +99,6 @@ class Network(nn.Module):
 
 
 class Trainer:
-
     verbose = False
     report_freq = 4
 
@@ -146,14 +144,14 @@ class Trainer:
         return avg_loss
 
 
-class Validator:
+class Tester:
 
     def __init__(self):
 
         self.correct = None
         self.total = None
 
-    def validate(self, network: Network, loader: DataLoader):
+    def test(self, network: Network, loader: DataLoader) -> tuple[int, int]:
         self.correct = 0
         self.total = 0
 
@@ -166,3 +164,5 @@ class Validator:
                     if torch.argmax(i) == label[idx]:
                         self.correct += 1
                     self.total += 1
+
+        return self.correct, self.total
