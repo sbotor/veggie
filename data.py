@@ -7,7 +7,7 @@ from torchvision.io import read_image
 from network import DEVICE
 
 
-def read_img(img_path: str | Path, max_crop: int = 320):
+def read_img(img_path: str, max_crop: int = 320):
 
     img_path = img_path if isinstance(
         img_path, Path) else Path(img_path)
@@ -24,12 +24,11 @@ class Loader:
 
     IMG_SIZE = 320
 
-    def __init__(self, data_home: str | Path = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
+    def __init__(self, data_home: str = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 64):
 
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
         self.train_path = self.data_home.joinpath('train')
-        self.test_path = self.data_home.joinpath('test')
         self.test_path = self.data_home.joinpath('test')
 
         self.max_rotation = max_rotation
@@ -37,7 +36,7 @@ class Loader:
 
         self.batch_size = batch_size
 
-    def load_train(self) -> tuple[ImageFolder, DataLoader]:
+    def load_train(self):
 
         transform = self._get_train_transform()
 
@@ -46,7 +45,7 @@ class Loader:
 
         return dataset, loader
 
-    def load_test(self) -> tuple[ImageFolder, DataLoader]:
+    def load_test(self):
 
         transform = self._get_test_transform()
 
@@ -55,7 +54,7 @@ class Loader:
 
         return dataset, loader
 
-    def load_test(self) -> tuple[ImageFolder, DataLoader]:
+    def load_test(self):
 
         transform = self._get_test_transform()
 
@@ -83,7 +82,7 @@ class TrainLogger:
 
     HEADER = 'Epoch;Elapsed;Loss\n'
 
-    def __init__(self, path: str | Path, append: bool = False):
+    def __init__(self, path: str, append: bool = False):
 
         self.path = path if isinstance(path, Path) else Path(path)
         self.append = append
@@ -118,7 +117,7 @@ class TestLogger:
 
     HEADER = 'Elapsed;Correct;Total\n'
 
-    def __init__(self, path: str | Path, append: bool = False):
+    def __init__(self, path: str, append: bool = False):
 
         self.path = path if isinstance(path, Path) else Path(path)
         self.append = append

@@ -75,7 +75,7 @@ class Network(nn.Module):
         return x
 
     @classmethod
-    def load(cls, path: Path | str) -> 'Network':
+    def load(cls, path: str) -> 'Network':
 
         load_dict = torch.load(path, map_location=DEVICE)
 
@@ -88,7 +88,7 @@ class Network(nn.Module):
 
         return net
 
-    def save(self, path: Path | str):
+    def save(self, path: str):
 
         save_dict = {
             self._DICT_MODEL: self.state_dict(),
@@ -151,7 +151,7 @@ class Tester:
         self.correct = None
         self.total = None
 
-    def test(self, network: Network, loader: DataLoader) -> tuple[int, int]:
+    def test(self, network: Network, loader: DataLoader):
         self.correct = 0
         self.total = 0
 
