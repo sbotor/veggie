@@ -1,9 +1,10 @@
 from argparse import ArgumentParser
 
 from network import DEVICE, Network, Trainer, Tester
-from data import TrainLogger, Loader, read_img, TestLogger
+from data import TrainLogger, Loader, read_img, show_img, TestLogger
 from pathlib import Path
 import torch
+from torchvision import transforms
 
 
 def _train(args):
@@ -40,7 +41,7 @@ def _train(args):
     if inp_path:
         network = Network.load(inp_path)
     else:
-        network = Network(loader.IMG_SIZE, len(classes), classes)
+        network = Network(loader._IMG_SIZE, len(classes), classes)
 
     if logger:
         logger.start(starting_epoch)
@@ -66,8 +67,6 @@ def _test(args):
     model_path = Path(args.model).absolute()
 
     net = Network.load(model_path)
-    # inp_path = Path(args.input).absolute() if args.input else None
-    # out_path = inp_path if inp_path else Path(args.output).absolute()
 
     if args.log:
         if args.log == '-':
@@ -106,14 +105,19 @@ def _classify(args):
 
     with torch.no_grad():
         net.eval()
-        result = net(img.unsqueeze_())
+        result = net(img.unsqueeze_(0)).flatten()
         i = torch.argmax(result)
-        print(f'{result}')
-   
+        #print(f'{result}')
+    
+    img_disp = img.squeeze(0)
     if net.classes and i < len(net.classes):
         print(f'{net.classes[i]} ({result[i]:.3f})')
+        if args.show:
+            show_img(img_disp, image_path.parent.name, net.classes[i])
     else:
         print(f'{i} ({result[i]:.3f})')
+        if args.show:
+            show_img(img_disp, image_path.parent.name)
 
 
 def _add_train_parser(subparsers):
@@ -171,6 +175,7 @@ def _add_classification_parser(subparsers):
     class_parser.add_argument('image', help='image path')
     class_parser.add_argument(
         '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
+    class_parser.add_argument('--show', '-s', action='store_true', help='show the transformed image')
 
     class_parser.set_defaults(func=_classify)
 

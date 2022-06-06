@@ -1,47 +1,36 @@
 from pathlib import Path
 from time import time
+from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from torchvision.io import read_image
 from network import DEVICE
-
-
-def read_img(img_path: str, max_crop: int = 320):
-
-    img_path = img_path if isinstance(
-        img_path, Path) else Path(img_path)
-
-    transform = transforms.Compose([
-        transforms.CenterCrop(max_crop)
-    ])
-
-    raw_img = read_image(str(img_path.absolute())).to(DEVICE)
-    return transform(raw_img).float()
-
+import matplotlib.pyplot as plt
+import PIL.Image
 
 class Loader:
 
-    IMG_SIZE = 320
+    _IMG_SIZE = 320
+    _CROP = 320
+    _ROT = 30
+    _BATCH_SIZE = 32
 
-    def __init__(self, data_home: str = 'data', max_rotation: int = 30, max_crop: int = 320, batch_size: int = 32):
+    def __init__(self, data_home: str = 'data'):
 
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
         self.train_path = self.data_home.joinpath('train')
         self.test_path = self.data_home.joinpath('test')
 
-        self.max_rotation = max_rotation
-        self.max_crop = max_crop
-
-        self.batch_size = batch_size
+        self.batch_size = 32
 
     def load_train(self):
 
         transform = self._get_train_transform()
 
         dataset = ImageFolder(self.train_path, transform=transform)
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        loader = DataLoader(dataset, batch_size=self._BATCH_SIZE, shuffle=True)
 
         return dataset, loader
 
@@ -54,20 +43,26 @@ class Loader:
 
         return dataset, loader
 
-    def _get_train_transform(self) -> transforms.Compose:
+    @classmethod
+    def _get_train_transform(cls) -> transforms.Compose:
         return transforms.Compose([
-            transforms.RandomRotation(self.max_rotation),
-            transforms.RandomResizedCrop(self.max_crop),
+            transforms.RandomRotation(cls._ROT),
+            transforms.Resize(cls._CROP),
+            transforms.CenterCrop(cls._CROP),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                 0.229, 0.224, 0.225])
         ])
 
-    def _get_test_transform(self) -> transforms.Compose:
+    @classmethod
+    def _get_test_transform(cls) -> transforms.Compose:
         return transforms.Compose([
-            transforms.CenterCrop(self.max_crop),
+            transforms.Resize(cls._CROP),
+            transforms.CenterCrop(cls._CROP),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                 0.229, 0.224, 0.225])
         ])
 
 
@@ -131,3 +126,27 @@ class TestLogger:
             f.write(line)
 
         self._prev_time = curr_time
+
+
+def read_img(img_path: str):
+
+    trans = transforms.Compose([
+            transforms.Resize(Loader._CROP),
+            transforms.CenterCrop(Loader._CROP),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                 0.229, 0.224, 0.225])
+        ])
+
+    img_path = img_path.absolute() if isinstance(
+        img_path, Path) else Path(img_path).absolute()
+
+    raw_img = PIL.Image.open(img_path)
+    return trans(raw_img).float().to(DEVICE)
+
+
+def show_img(img: Tensor, label: str, predicted: str | None = None):
+    title = f'Predicted: {predicted}, actual: {label}' if predicted else label
+    plt.title(title)
+    plt.imshow(img.cpu().permute(1, 2, 0))
+    plt.show()

@@ -37,17 +37,15 @@ class Network(nn.Module):
             nn.MaxPool2d(3, 2)
         )
 
-        pool = nn.MaxPool2d(3, 2)
-
         self.classify = nn.Sequential(
-            nn.Linear(16384, 512),
+            nn.Linear(16384, 4096),
             nn.ReLU(True),
             nn.Dropout(),
 
-            nn.Linear(512, 512),
+            nn.Linear(4096, 4096),
             nn.ReLU(True),
 
-            nn.Linear(512, out_num)
+            nn.Linear(4096, out_num)
         )
 
         self.classes = tuple(classes) if classes else tuple()
