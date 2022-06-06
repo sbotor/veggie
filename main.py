@@ -4,6 +4,7 @@ from network import DEVICE, Network, Trainer, Tester
 from data import TrainLogger, Loader, read_img, show_img, TestLogger
 from pathlib import Path
 import torch
+from parser import Parser
 
 
 def _train(args):
@@ -106,92 +107,21 @@ def _classify(args):
         net.eval()
         result = net(img.unsqueeze_(0)).flatten()
         i = torch.argmax(result)
-        #print(f'{result}')
-    
+
     img_disp = img.squeeze(0)
+    img_label = args.show or 'unknown'
     if net.classes and i < len(net.classes):
         print(f'{net.classes[i]} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp, image_path.parent.name, net.classes[i])
+            show_img(img_disp, f'Prediction: {net.classes[i]}')
     else:
         print(f'{i} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp, image_path.parent.name)
-
-
-def _add_train_parser(subparsers):
-    train_parser = subparsers.add_parser(
-        'train', help='TODO: train help')
-
-    train_parser.add_argument('data', help='root data folder path')
-
-    train_parser.add_argument(
-        '--verbose', '-v', action='store_true', help='verbose training info')
-
-    train_parser.add_argument(
-        '--input', '-i', help='input model (new model will be created if not present)')
-    train_parser.add_argument('--output', '-o', default='model.pt',
-                              help='model output path (default: model.pt)')
-
-    train_parser.add_argument(
-        '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
-    train_parser.add_argument(
-        '--learning-rate', '--lr', type=float, help='learning rate')
-
-    train_parser.add_argument('--log', nargs='?', const='-',
-                              help='save results to a csv file if present (default: train.csv)')
-    train_parser.add_argument(
-        '--append-log', type=int, nargs='?', const=0,
-        help='append to the log file starting at the specified epoch (default: 1)')
-
-    train_parser.set_defaults(func=_train)
-
-
-def _add_test_parser(subparsers):
-
-    test_parser = subparsers.add_parser(
-        'test', help='TODO: test help')
-
-    test_parser.add_argument('data', help='root data folder path')
-
-    test_parser.add_argument('--log', nargs='?', const='-',
-                                   help='save results to a csv file if present (default: train.csv)')
-    # TODO
-    test_parser.add_argument(
-        '--append-log', type=int, nargs='?', const=0,
-        help='append to the log file starting at the specified epoch (default: 1)')
-
-    test_parser.add_argument(
-        '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
-
-    test_parser.set_defaults(func=_test)
-
-
-def _add_classification_parser(subparsers):
-    class_parser = subparsers.add_parser(
-        'classify', help='TODO: classification help', aliases=['class'])
-
-    class_parser.add_argument('image', help='image path')
-    class_parser.add_argument(
-        '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
-    class_parser.add_argument('--show', '-s', action='store_true', help='show the transformed image')
-
-    class_parser.set_defaults(func=_classify)
-
-
-def _get_parser() -> ArgumentParser:
-    parser = ArgumentParser()
-    subparsers = parser.add_subparsers()
-
-    _add_train_parser(subparsers)
-    _add_test_parser(subparsers)
-    _add_classification_parser(subparsers)
-
-    return parser
+            show_img(img_disp)
 
 
 def main():
-    parser = _get_parser()
+    parser = Parser(train_f=_train, test_f=_test, class_f=_classify)
     args = parser.parse_args()
 
     if hasattr(args, 'func'):

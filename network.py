@@ -1,64 +1,29 @@
-from math import floor
 from typing import List
 import torch.nn as nn
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
+import torchvision.models as models
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-IMG_SIZE = 250
+IMG_SIZE = 224
 
-class Network(nn.Module):
+class Network(models.MobileNetV2):
 
     _DICT_CLASSES = 'classes'
     _DICT_MODEL = 'model'
 
     def __init__(self, out_num: int = 33, classes: List[str] = None):
-        super().__init__()
-
-        self.features = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=64, kernel_size=11, stride=4, padding=0),
-            nn.ReLU(True),
-            nn.MaxPool2d(3, 2),
-
-            nn.Conv2d(in_channels=64, out_channels=192, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(True),
-            nn.MaxPool2d(3, 2),
-
-            nn.Conv2d(in_channels=192, out_channels=384, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
-
-            nn.Conv2d(in_channels=384, out_channels=256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
-
-            nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
-            nn.MaxPool2d(3, 2)
-        )
-
-        self.classify = nn.Sequential(
-            nn.Linear(9216, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-
-            nn.Linear(4096, out_num)
-        )
-
+        super().__init__(num_classes=out_num)
         self.classes = tuple(classes) if classes else tuple()
-
         self.to(DEVICE)
 
-    def forward(self, x):
-        x = self.features(x)
-        x = torch.flatten(x, 1)  # flatten all dimensions except batch
-        x = self.classify(x)
-
-        return x
-
+    # def forward(self, x):
+    #     x = super().forward(x)
+    #     print(x)
+    #     return x
+    
     @classmethod
     def load(cls, path: str) -> 'Network':
 

@@ -4,7 +4,6 @@ from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-from torchvision.io import read_image
 from network import DEVICE, IMG_SIZE
 import matplotlib.pyplot as plt
 import PIL.Image
@@ -129,8 +128,8 @@ class TestLogger:
 def read_img(img_path: str):
 
     trans = transforms.Compose([
-            transforms.Resize(Loader._CROP),
-            transforms.CenterCrop(Loader._CROP),
+            transforms.Resize(IMG_SIZE),
+            transforms.CenterCrop(IMG_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                                  0.229, 0.224, 0.225])
@@ -143,8 +142,7 @@ def read_img(img_path: str):
     return trans(raw_img).float().to(DEVICE)
 
 
-def show_img(img: Tensor, label: str, predicted: str | None = None):
-    title = f'Predicted: {predicted}, actual: {label}' if predicted else label
-    plt.title(title)
+def show_img(img: Tensor, label: str = ''):
+    plt.title(label)
     plt.imshow(img.cpu().permute(1, 2, 0))
     plt.show()
