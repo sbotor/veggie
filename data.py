@@ -5,14 +5,12 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from torchvision.io import read_image
-from network import DEVICE
+from network import DEVICE, IMG_SIZE
 import matplotlib.pyplot as plt
 import PIL.Image
 
 class Loader:
 
-    _IMG_SIZE = 320
-    _CROP = 320
     _ROT = 30
     _BATCH_SIZE = 32
 
@@ -47,8 +45,8 @@ class Loader:
     def _get_train_transform(cls) -> transforms.Compose:
         return transforms.Compose([
             transforms.RandomRotation(cls._ROT),
-            transforms.Resize(cls._CROP),
-            transforms.CenterCrop(cls._CROP),
+            transforms.Resize(IMG_SIZE),
+            transforms.CenterCrop(IMG_SIZE),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
@@ -58,8 +56,8 @@ class Loader:
     @classmethod
     def _get_test_transform(cls) -> transforms.Compose:
         return transforms.Compose([
-            transforms.Resize(cls._CROP),
-            transforms.CenterCrop(cls._CROP),
+            transforms.Resize(IMG_SIZE),
+            transforms.CenterCrop(IMG_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                                  0.229, 0.224, 0.225])

@@ -7,14 +7,14 @@ from torch.utils.data import DataLoader
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+IMG_SIZE = 250
 
 class Network(nn.Module):
 
     _DICT_CLASSES = 'classes'
     _DICT_MODEL = 'model'
-    _DICT_DIMENSIONS = 'dimensions'
 
-    def __init__(self, img_dim: int = 320, out_num: int = 33, classes: List[str] = None):
+    def __init__(self, out_num: int = 33, classes: List[str] = None):
         super().__init__()
 
         self.features = nn.Sequential(
@@ -38,7 +38,7 @@ class Network(nn.Module):
         )
 
         self.classify = nn.Sequential(
-            nn.Linear(16384, 4096),
+            nn.Linear(9216, 4096),
             nn.ReLU(True),
             nn.Dropout(),
 
@@ -49,7 +49,6 @@ class Network(nn.Module):
         )
 
         self.classes = tuple(classes) if classes else tuple()
-        self.img_dim = img_dim
 
         self.to(DEVICE)
 
@@ -65,11 +64,10 @@ class Network(nn.Module):
 
         load_dict = torch.load(path, map_location=DEVICE)
 
-        img_dim = load_dict[cls._DICT_DIMENSIONS]
         classes = load_dict[cls._DICT_CLASSES]
         classes_n = len(classes)
 
-        net = Network(img_dim, classes_n, classes)
+        net = Network(classes_n, classes)
         net.load_state_dict(load_dict[cls._DICT_MODEL])
 
         return net
@@ -78,8 +76,7 @@ class Network(nn.Module):
 
         save_dict = {
             self._DICT_MODEL: self.state_dict(),
-            self._DICT_CLASSES: self.classes,
-            self._DICT_DIMENSIONS: self.img_dim
+            self._DICT_CLASSES: self.classes
         }
         torch.save(save_dict, path)
 
@@ -88,7 +85,7 @@ class Trainer:
     verbose = False
     report_freq = 4
 
-    def __init__(self, learning_rate: float = 0.0001, optimizer=None, criterion=None):
+    def __init__(self, learning_rate: float = 0.001, optimizer=None, criterion=None):
 
         self.learning_rate = learning_rate
 

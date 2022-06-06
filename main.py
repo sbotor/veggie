@@ -4,7 +4,6 @@ from network import DEVICE, Network, Trainer, Tester
 from data import TrainLogger, Loader, read_img, show_img, TestLogger
 from pathlib import Path
 import torch
-from torchvision import transforms
 
 
 def _train(args):
@@ -41,7 +40,7 @@ def _train(args):
     if inp_path:
         network = Network.load(inp_path)
     else:
-        network = Network(loader._IMG_SIZE, len(classes), classes)
+        network = Network(len(classes), classes)
 
     if logger:
         logger.start(starting_epoch)
