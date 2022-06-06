@@ -59,13 +59,15 @@ class Loader:
             transforms.RandomRotation(self.max_rotation),
             transforms.RandomResizedCrop(self.max_crop),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
     def _get_test_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.CenterCrop(self.max_crop),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
 

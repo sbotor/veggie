@@ -106,7 +106,7 @@ def _classify(args):
 
     with torch.no_grad():
         net.eval()
-        result = net(img)
+        result = net(img.unsqueeze_())
         i = torch.argmax(result)
         print(f'{result}')
    
