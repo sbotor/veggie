@@ -106,17 +106,17 @@ def _classify(args):
         net.eval()
         result = net(img.unsqueeze_(0)).flatten()
         i = torch.argmax(result)
-        #print(f'{result}')
-    
+
     img_disp = img.squeeze(0)
+    img_label = args.show or 'unknown'
     if net.classes and i < len(net.classes):
         print(f'{net.classes[i]} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp, image_path.parent.name, net.classes[i])
+            show_img(img_disp, f'Prediction: {net.classes[i]}')
     else:
         print(f'{i} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp, image_path.parent.name)
+            show_img(img_disp)
 
 
 def _add_train_parser(subparsers):
@@ -155,11 +155,10 @@ def _add_test_parser(subparsers):
     test_parser.add_argument('data', help='root data folder path')
 
     test_parser.add_argument('--log', nargs='?', const='-',
-                                   help='save results to a csv file if present (default: train.csv)')
+                             help='save results to a csv file if present (default: train.csv)')
     # TODO
     test_parser.add_argument(
-        '--append-log', type=int, nargs='?', const=0,
-        help='append to the log file starting at the specified epoch (default: 1)')
+        '--append-log', action='store_true', help='append to the log file')
 
     test_parser.add_argument(
         '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
@@ -174,7 +173,8 @@ def _add_classification_parser(subparsers):
     class_parser.add_argument('image', help='image path')
     class_parser.add_argument(
         '--model', '-m', default='model.pt', help='trained model path (default: model.pt)')
-    class_parser.add_argument('--show', '-s', action='store_true', help='show the transformed image')
+    class_parser.add_argument(
+        '--show', '-s', action='store_true', help='show the transformed image')
 
     class_parser.set_defaults(func=_classify)
 
