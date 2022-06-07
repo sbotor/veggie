@@ -101,23 +101,22 @@ def _classify(args):
     image_path = Path(args.image).absolute()
 
     net = Network.load(model_path)
-    img = read_img(image_path)
+    images = read_img(image_path)
 
     with torch.no_grad():
         net.eval()
-        result = net(img.unsqueeze_(0)).flatten()
+        result = net(images[0].unsqueeze_(0)).flatten()
         i = torch.argmax(result)
 
-    img_disp = img.squeeze(0)
     img_label = args.show or 'unknown'
     if net.classes and i < len(net.classes):
         print(f'{net.classes[i]} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp, f'Prediction: {net.classes[i]}')
+            show_img(images[1], f'Prediction: {net.classes[i]}')
     else:
         print(f'{i} ({result[i]:.3f})')
         if args.show:
-            show_img(img_disp)
+            show_img(images[1])
 
 
 def main():

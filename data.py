@@ -7,15 +7,15 @@ from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from network import DEVICE, IMG_SIZE
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import PIL.Image
 
-class Loader:
 
+class Loader:
     _ROT = 30
     _BATCH_SIZE = 32
 
     def __init__(self, data_home: str = 'data'):
-
         self.data_home = data_home if isinstance(
             data_home, Path) else Path(data_home)
         self.train_path = self.data_home.joinpath('train')
@@ -24,7 +24,6 @@ class Loader:
         self.batch_size = 32
 
     def load_train(self):
-
         transform = self._get_train_transform()
 
         dataset = ImageFolder(self.train_path, transform=transform)
@@ -33,7 +32,6 @@ class Loader:
         return dataset, loader
 
     def load_test(self):
-
         transform = self._get_test_transform()
 
         dataset = ImageFolder(self.test_path, transform=transform)
@@ -50,7 +48,7 @@ class Loader:
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                                 0.229, 0.224, 0.225])
+                0.229, 0.224, 0.225])
         ])
 
     @classmethod
@@ -60,16 +58,14 @@ class Loader:
             transforms.CenterCrop(IMG_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                                 0.229, 0.224, 0.225])
+                0.229, 0.224, 0.225])
         ])
 
 
 class TrainLogger:
-
     HEADER = 'Epoch;Elapsed;Loss\n'
 
     def __init__(self, path: str, append: bool = False):
-
         self.path = path if isinstance(path, Path) else Path(path)
         self.append = append
 
@@ -98,11 +94,9 @@ class TrainLogger:
 
 
 class TestLogger:
-
     HEADER = 'Elapsed;Correct;Total\n'
 
     def __init__(self, path: str, append: bool = False):
-
         self.path = path if isinstance(path, Path) else Path(path)
         self.append = append
 
@@ -127,25 +121,23 @@ class TestLogger:
 
 
 def read_img(img_path: str):
-
     trans = transforms.Compose([
-            transforms.Resize(IMG_SIZE),
-            transforms.CenterCrop(IMG_SIZE),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                                 0.229, 0.224, 0.225])
-        ])
+        transforms.Resize(IMG_SIZE),
+        transforms.CenterCrop(IMG_SIZE),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+            0.229, 0.224, 0.225])
+    ])
 
     img_path = img_path.absolute() if isinstance(
         img_path, Path) else Path(img_path).absolute()
 
     raw_img = PIL.Image.open(img_path)
-    return trans(raw_img).float().to(DEVICE)
+    return trans(raw_img).float().to(DEVICE), raw_img
 
 
 def show_img(img: Tensor, label: str = ''):
     plt.title(label)
-    out = img.cpu().permute(1, 2, 0).numpy()
-    out = np.clip(out / np.amax(out), 0, 1)
-    plt.imshow(out)
+    plt.imshow(img)
+    plt.axis('off')
     plt.show()
