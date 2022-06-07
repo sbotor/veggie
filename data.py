@@ -1,5 +1,6 @@
 from pathlib import Path
 from time import time
+import numpy as np
 from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -144,5 +145,7 @@ def read_img(img_path: str):
 
 def show_img(img: Tensor, label: str = ''):
     plt.title(label)
-    plt.imshow(img.cpu().permute(1, 2, 0))
+    out = img.cpu().permute(1, 2, 0).numpy()
+    out = np.clip(out / np.amax(out), 0, 1)
+    plt.imshow(out)
     plt.show()
