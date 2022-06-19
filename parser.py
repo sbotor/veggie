@@ -28,7 +28,7 @@ class Parser(ArgumentParser):
         self._train_parser.add_argument(
             '--epochs', '-e', type=int, default=1, help='number of epochs (default: 1)')
         self._train_parser.add_argument(
-            '--learning-rate', '--lr', type=float, help='learning rate')
+            '--learning-rate', '--lr', type=float, help='learning rate (default: 0.001)')
 
         self._train_parser.add_argument('--log', nargs='?', const='-',
                                         help='save results to a csv file if present (default: train.csv)')

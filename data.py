@@ -1,14 +1,49 @@
 from pathlib import Path
 from time import time
-import numpy as np
 from torch import Tensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from network import DEVICE, IMG_SIZE
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import PIL.Image
+
+
+PLANT_TYPES = {
+    0: 'fruit',
+    1: 'fruit',
+    2: 'vegetable',
+    3: 'vegetable',
+    4: 'vegetable',
+    5: 'vegetable',
+    6: 'vegetable',
+    7: 'vegetable',
+    8: 'vegetable',
+    9: 'vegetable',
+    10: 'vegetable',
+    11: 'vegetable',
+    12: 'vegetable',
+    13: 'fruit',
+    14: 'vegetable',
+    15: 'fruit',
+    16: 'fruit',
+    17: 'vegetable',
+    18: 'fruit',
+    19: 'vegetable',
+    20: 'fruit',
+    21: 'fruit',
+    22: 'vegetable',
+    23: 'fruit',
+    24: 'fruit',
+    25: 'vegetable',
+    26: 'vegetable',
+    27: 'vegetable',
+    28: 'vegetable',
+    29: 'vegetable',
+    30: 'vegetable',
+    31: 'vegetable',
+    32: 'fruit'
+}
 
 
 class Loader:

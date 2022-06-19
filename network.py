@@ -9,6 +9,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 IMG_SIZE = 224
 
+
 class Network(models.MobileNetV2):
 
     _DICT_CLASSES = 'classes'
@@ -19,11 +20,6 @@ class Network(models.MobileNetV2):
         self.classes = tuple(classes) if classes else tuple()
         self.to(DEVICE)
 
-    # def forward(self, x):
-    #     x = super().forward(x)
-    #     print(x)
-    #     return x
-    
     @classmethod
     def load(cls, path: str) -> 'Network':
 

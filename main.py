@@ -1,7 +1,5 @@
-from argparse import ArgumentParser
-
 from network import DEVICE, Network, Trainer, Tester
-from data import TrainLogger, Loader, read_img, show_img, TestLogger
+from data import TrainLogger, Loader, read_img, show_img, TestLogger, PLANT_TYPES
 from pathlib import Path
 import torch
 from parser import Parser
@@ -106,13 +104,14 @@ def _classify(args):
     with torch.no_grad():
         net.eval()
         result = net(images[0].unsqueeze_(0)).flatten()
-        i = torch.argmax(result)
+        i = torch.argmax(result).item()
 
-    img_label = args.show or 'unknown'
     if net.classes and i < len(net.classes):
-        print(f'{net.classes[i]} ({result[i]:.3f})')
+        print(
+            f'{net.classes[i]} [{PLANT_TYPES.get(i, "plant")}] ({result[i]:.3f})')
         if args.show:
-            show_img(images[1], f'Prediction: {net.classes[i]}')
+            show_img(
+                images[1], f'Prediction: {net.classes[i]} [{PLANT_TYPES.get(i, "plant")}]')
     else:
         print(f'{i} ({result[i]:.3f})')
         if args.show:
