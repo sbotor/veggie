@@ -13,7 +13,7 @@ class Parser(ArgumentParser):
 
     def _add_train_parser(self, func: callable):
         self._train_parser = self._subparsers.add_parser(
-            'train', help='TODO: train help')
+            'train', help='train the model')
 
         self._train_parser.add_argument('data', help='root data folder path')
 
@@ -41,7 +41,7 @@ class Parser(ArgumentParser):
     def _add_test_parser(self, func: callable):
 
         self._test_parser = self._subparsers.add_parser(
-            'test', help='TODO: test help')
+            'test', help='perform accuracy testing on the model')
 
         self._test_parser.add_argument('data', help='root data folder path')
 
@@ -58,7 +58,7 @@ class Parser(ArgumentParser):
 
     def _add_classification_parser(self, func: callable):
         self._class_parser = self._subparsers.add_parser(
-            'classify', help='TODO: classification help', aliases=['class'])
+            'classify', help='classify a picture', aliases=['class'])
 
         self._class_parser.add_argument('image', help='image path')
         self._class_parser.add_argument(
